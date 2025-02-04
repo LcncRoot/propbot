@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+
+# venv
+venv/
+.venv/
+
+# logs/temp files
+*.log
+*.tmp
+*.out
+*.pid
+*.gz
+*.zip
+
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# build artifacts
+dist/
+build/
+*.js.map
+
+# database and caches
+*.sqlite3
+
+# fastAPI and grant scraper files
+scraper/data_gov_scraper/grants_data.json
+scraper/data_gov_scraper/*.xml
+
+# System files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+scraper/data_gov_scraper/*.xml
+propbot-lite/
+*.zip
