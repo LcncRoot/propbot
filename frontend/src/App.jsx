@@ -1,76 +1,77 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 function App() {
+  const [query, setQuery] = useState("");
   const [grants, setGrants] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchQuery, setSearchQuery] = useState(""); // Only trigger search on button press
+  const [selectedGrant, setSelectedGrant] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
-  // Function to fetch search results from backend
-  const fetchSearchResults = (query) => {
-    console.log(`🔍 Fetching grants with query: "${query}"`);
+  const handleSearch = () => {
+    setLoading(true);
+    setError(null);
 
-    if (!query.trim()) {
-      console.log("🟢 Fetching ALL grants (empty search)");
-      fetch("http://127.0.0.1:8000/grants")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("✅ Grants received:", data);
-          setGrants(data.grants);
-        })
-        .catch((error) => console.error("❌ Error fetching grants:", error));
-    } else {
-      console.log(`🟢 Searching for "${query}"`);
-      fetch(`http://127.0.0.1:8000/search?query=${encodeURIComponent(query)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("✅ Search results received:", data);
+    fetch(`/api/search?query=${query}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.matches)) {
           setGrants(data.matches);
-        })
-        .catch((error) => console.error("❌ Error searching grants:", error));
-    }
+          setSelectedGrant(null);
+        } else {
+          setError("Invalid search response: Expected an array.");
+        }
+      })
+      .catch(() => setError("Search failed. Please try again."))
+      .finally(() => setLoading(false));
   };
 
-  // Fetch grants when user presses search
-  useEffect(() => {
-    if (searchQuery !== "") {
-      fetchSearchResults(searchQuery);
-    }
-  }, [searchQuery]);
+  const fetchFullDetails = (opportunityId) => {
+    setLoadingDetails(true);
+    setError(null);
 
-  // Handle Enter keypress
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      setSearchQuery(searchTerm);
-    }
+    fetch(`/api/grant/${opportunityId}?fetch_details=true`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setSelectedGrant(data);
+        }
+      })
+      .catch(() => setError("Failed to fetch full details."))
+      .finally(() => setLoadingDetails(false));
   };
 
   return (
-    <div className="container">
-      <h1>PropBot - Grant Search</h1>
-      <input
-        type="text"
-        placeholder="Search grants..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onKeyDown={handleKeyDown} // Listen for Enter key
-      />
-      <button onClick={() => setSearchQuery(searchTerm)}>Search</button> {/* Search button */}
-      <ul>
-        {grants.length > 0 ? (
-          grants.map((grant, index) => (
-            <li key={index}>
-              <h3>{grant.title}</h3>
-              <p><strong>Opportunity ID:</strong> {grant.opportunity_id}</p> {/* ✅ Now displays opportunity_id */}
-              <p><strong>Agency:</strong> {grant.agency}</p>
-              <p><strong>Funding Amount:</strong> ${grant.funding_amount}</p>
-              <p><strong>Deadline:</strong> {grant.deadline}</p>
-              {grant.grant_url && <a href={grant.grant_url} target="_blank">View Details</a>}
-            </li>
-          ))
-        ) : (
-          <p>No grants found.</p>
-        )}
-      </ul>
+    <div>
+      <header style={{ backgroundColor: "#007bff", color: "white", padding: "10px" }}>
+        <h1>Grant Explorer</h1>
+        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search grants..." />
+        <button onClick={handleSearch}>Search</button>
+      </header>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {loading && <p>Loading results...</p>}
+
+      <div style={{ display: "flex" }}>
+        <div style={{ width: "40%", padding: "10px" }}>
+          {grants.length > 0 && <h2>Search Results</h2>}
+          <ul>
+            {grants.map((grant) => (
+              <li key={grant.opportunity_id}>
+                <strong>{grant.title}</strong> <br />
+                <button onClick={() => fetchFullDetails(grant.opportunity_id)}>Get Full Details</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div style={{ width: "60%", padding: "10px" }}>
+          {selectedGrant && <div><h2>{selectedGrant.title}</h2><p>{selectedGrant.description}</p></div>}
+        </div>
+      </div>
     </div>
   );
 }
