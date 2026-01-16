@@ -1,7 +1,8 @@
 # PropBot  
 
 ## Overview  
-PropBot is a tool for efficiently searching and analyzing grant and contract opportunities. It aggregates funding data from multiple sources, processes it into structured formats, and enables fast retrieval. While the system is designed to support **FAISS-based semantic search**, this has not yet been implemented. The current implementation relies on keyword-based search.  
+PropBot is a tool for efficiently searching and analyzing grant and contract opportunities. It aggregates funding data from multiple sources, processes it into structured formats, and enables fast retrieval. While the system is designed to support **FAISS-based semantic search**, this has not yet been implemented. The current implementation relies on keyword-based search.  I will not go internal technical masturbation at this time, if you have the savviness to understand the technical depth of the tool, the codebase is there for you to read.
+
 
 ## System Components  
 
