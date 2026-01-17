@@ -1,8 +1,8 @@
 import requests
 import json
+import sys
 
 API_BASE_URL = "https://api.grants.gov/v1/api"
-SEARCH_ENDPOINT = f"{API_BASE_URL}/search2"
 FETCH_OPPORTUNITY_ENDPOINT = f"{API_BASE_URL}/fetchOpportunity"
 
 HEADERS = {
@@ -10,13 +10,10 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
 }
 
-OPPORTUNITY_ID = 355457  # Explicitly fetching this opportunity
-
-
 def fetch_opportunity_details(opportunity_id):
     """Fetches detailed grant information for a specific opportunity ID."""
     print(f"\n🔍 Fetching details for Opportunity ID: {opportunity_id}...")
-    
+
     response = requests.post(
         FETCH_OPPORTUNITY_ENDPOINT,
         headers=HEADERS,
@@ -39,29 +36,50 @@ def fetch_opportunity_details(opportunity_id):
         print("❌ ERROR decoding JSON response")
         return None
 
-
 def main():
-    print("\n🔍 Searching for grant details...")
-    
-    grant_data = fetch_opportunity_details(OPPORTUNITY_ID)
+    # Get Opportunity ID from command-line argument or prompt user
+    if len(sys.argv) > 1:
+        opportunity_id = sys.argv[1]
+    else:
+        opportunity_id = input("Enter Opportunity ID: ").strip()
+
+    if not opportunity_id.isdigit():
+        print("❌ Invalid input. Please enter a numeric Opportunity ID.")
+        return
+
+    grant_data = fetch_opportunity_details(opportunity_id)
 
     if grant_data:
         print("\n✅ Detailed Grant Data:")
         print(json.dumps(grant_data, indent=4))
 
-        # Check for associated documents
+        # Display all essential grant details
+        print("\n📄 Key Information:")
+        print(f"Title: {grant_data.get('opportunityTitle', 'N/A')}")
+        print(f"Agency: {grant_data.get('topAgencyDetails', {}).get('agencyName', 'N/A')}")
+        print(f"Funding Amount: ${grant_data.get('forecast', {}).get('estimatedFundingFormatted', 'N/A')}")
+        print(f"Deadline: {grant_data.get('synopsis', {}).get('responseDateDesc', 'N/A')}")
+        print(f"Opportunity Number: {grant_data.get('opportunityNumber', 'N/A')}")
+        print(f"CFDA Number: {grant_data.get('cfdas', [{}])[0].get('cfdaNumber', 'N/A')}")
+        print(f"Synopsis: {grant_data.get('synopsis', {}).get('synopsisDesc', 'N/A')}")
+        print(f"Eligibility: {grant_data.get('synopsis', {}).get('applicantEligibilityDesc', 'N/A')}")
+        print(f"Funding Instruments: {[fi.get('description', 'N/A') for fi in grant_data.get('fundingInstruments', [])]}")
+        print(f"Award Ceiling: ${grant_data.get('synopsis', {}).get('awardCeilingFormatted', 'N/A')}")
+        print(f"Award Floor: ${grant_data.get('synopsis', {}).get('awardFloorFormatted', 'N/A')}")
+        print(f"Number of Expected Awards: {grant_data.get('synopsis', {}).get('numberOfAwards', 'N/A')}")
+        print(f"Contact Name: {grant_data.get('synopsis', {}).get('agencyContactName', 'N/A')}")
+        print(f"Contact Email: {grant_data.get('synopsis', {}).get('agencyContactEmail', 'N/A')}")
+        print(f"Contact Phone: {grant_data.get('synopsis', {}).get('agencyContactPhone', 'N/A')}")
+        print(f"Funding Activity Categories: {[fc.get('description', 'N/A') for fc in grant_data.get('fundingActivityCategories', [])]}")
+        print(f"Application URL: {grant_data.get('synopsis', {}).get('fundingDescLinkUrl', 'N/A')}")
+
+        # Check for attachments
         attachments = grant_data.get("synopsisAttachmentFolders", [])
-        document_urls = grant_data.get("synopsisDocumentURLs", [])
-
-        if attachments or document_urls:
-            print("\n📄 Associated Documents Found:")
-            for attachment in attachments:
-                print(f"- {attachment.get('folderName', 'Unknown Folder')} (Size: {attachment.get('zipLobSize', 'N/A')})")
-
-            for doc in document_urls:
-                print(f"- Document URL: {doc}")
-        else:
-            print("\n📄 No associated documents found.")
+        if attachments:
+            print("\n📎 Attachments:")
+            for folder in attachments:
+                for doc in folder.get("synopsisAttachments", []):
+                    print(f"- {doc.get('fileName', 'Unknown File')}")
 
     else:
         print("\n❌ No grant data retrieved.")

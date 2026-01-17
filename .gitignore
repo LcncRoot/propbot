@@ -28,18 +28,31 @@ dist/
 build/
 *.js.map
 
-# database and caches
-*.sqlite3
+# Environment and secrets
+.env
+.env.*
+!.env.example
 
-# fastAPI and grant scraper files
+# Database files
+*.sqlite3
+*.db
+propbot/data/*.db
+
+# FAISS index files
+*.bin
+faiss_*.npy
+faiss_*.json
+
+# fastAPI and grant scraper files - large data files
 scraper/data_gov_scraper/grants_data.json
+scraper/data_gov_scraper/filtered_contracts.json
+scraper/data_gov_scraper/grants_data_enriched.json
 scraper/data_gov_scraper/*.xml
+scraper/data_gov_scraper/*.csv
 
 # System files
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
-scraper/data_gov_scraper/*.xml
 propbot-lite/
-*.zip

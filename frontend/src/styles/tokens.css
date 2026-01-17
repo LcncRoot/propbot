@@ -1,0 +1,78 @@
+/**
+ * PropBot Design System Tokens
+ * Dark navy control-panel aesthetic
+ *
+ * DO NOT MODIFY without design approval
+ */
+
+:root {
+  /* === COLORS === */
+
+  /* Backgrounds - Dark navy layered gradients */
+  --bg-base: #0a1628;           /* Deepest background */
+  --bg-surface: #0f1d32;        /* Main content area */
+  --bg-card: #162032;           /* Card/panel backgrounds */
+  --bg-card-hover: #1a2840;     /* Card hover state */
+  --bg-selected: #1e3a5f;       /* Selected sidebar item */
+
+  /* Borders */
+  --border-default: #1e3048;    /* Subtle borders */
+  --border-active: #22d3ee;     /* Cyan glow for active states */
+  --border-active-glow: rgba(34, 211, 238, 0.3); /* Glow spread */
+
+  /* Text */
+  --text-primary: #ffffff;      /* Headings, active labels */
+  --text-secondary: #94a3b8;    /* Muted text, timestamps */
+  --text-accent: #22d3ee;       /* Cyan accent text */
+
+  /* Accents */
+  --accent-cyan: #22d3ee;       /* Primary accent */
+  --accent-teal: #14b8a6;       /* Toggle on state */
+  --success-green: #22c55e;     /* Energy indicator */
+  --warning-amber: #f59e0b;     /* Warning states */
+  --error-red: #ef4444;         /* Error states */
+
+  /* === SPACING === */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* === RADIUS === */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* === SHADOWS === */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-glow-cyan: 0 0 20px rgba(34, 211, 238, 0.15);
+  --shadow-inner-subtle: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-border-glow: 0 0 0 1px var(--border-active), 0 0 20px rgba(34, 211, 238, 0.15), 0 0 8px rgba(34, 211, 238, 0.3);
+
+  /* === TYPOGRAPHY === */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Font sizes */
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+
+  /* Line heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* === TRANSITIONS === */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}

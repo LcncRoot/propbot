@@ -1,0 +1,244 @@
+:root {
+  --bg-dark: #1a1f37;
+  --bg-card: #242b45;
+  --accent-blue: #00c8ff;
+  --text-light: #ffffff;
+  --text-secondary: #8c8fa3;
+  --card-border: #2d365c;
+}
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1f37 0%, #151b30 100%);
+  color: var(--text-light);
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 250px 1fr 300px;
+  gap: 2rem;
+  position: relative;
+}
+
+/* Add subtle blur effect to background */
+.container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(100px);
+  pointer-events: none;
+}
+
+.sidebar {
+  padding: 2rem;
+  border-right: 1px solid var(--card-border);
+}
+
+.mainContent {
+  padding: 2rem;
+}
+
+.rightPanel {
+  padding: 2rem;
+  border-left: 1px solid var(--card-border);
+}
+
+.header {
+  background: transparent;
+  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2.5rem;
+}
+
+.searchBar {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--card-border);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-size: 1rem;
+}
+
+.searchInput::placeholder {
+  color: var(--text-secondary);
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.activeTab {
+  background: var(--accent-blue);
+  color: var(--text-light);
+  border-color: var(--accent-blue);
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: rgba(36, 43, 69, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
+  border-color: rgba(0, 200, 255, 0.3);
+}
+
+.card h3 {
+  color: var(--text-light);
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--card-border);
+}
+
+/* Make View Details link explicitly styled */
+.card a, 
+.card button,
+a.viewButton {
+  padding: 0.5rem 1rem;
+  background: rgba(0, 200, 255, 0.15);
+  color: var(--accent-blue) !important; /* Force the color */
+  border: 1px solid rgba(0, 200, 255, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* Grant details panel with stronger styling */
+.detailsPanel,
+.grantDetails {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  color: var(--text-light) !important;
+}
+
+.detailsPanel h2,
+.grantDetails h2 {
+  color: var(--accent-blue) !important;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.detailsPanel p,
+.grantDetails p {
+  color: var(--text-secondary) !important;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.detailsPanel strong,
+.grantDetails strong {
+  color: var(--text-light) !important;
+  font-weight: 500;
+}
+
+.loadingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.skeleton {
+  height: 200px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: pulse 1.5s ease-in-out infinite;
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0% { background-position: 0% 0%; }
+  100% { background-position: -200% 0%; }
+}
+
+/* Add soft glow to active elements */
+.activeTab, .detailsButton {
+  position: relative;
+}
+
+.activeTab::after, .detailsButton::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--accent-blue);
+  filter: blur(8px);
+  z-index: -1;
+  opacity: 0.5;
+  border-radius: inherit;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .header {
+    padding: 1.5rem;
+  }
+  
+  .header h1 {
+    font-size: 2rem;
+  }
+} 
