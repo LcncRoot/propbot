@@ -71,6 +71,12 @@ interface DashboardLayoutProps {
   onFiltersChange: (filters: SearchFilters) => void
   /** Loading state */
   loading?: boolean
+  /** Loading more state (for infinite scroll) */
+  loadingMore?: boolean
+  /** Whether there are more results to load */
+  hasMore?: boolean
+  /** Load more handler (for infinite scroll) */
+  onLoadMore?: () => void
   /** Currently selected opportunity */
   selectedOpportunity?: Opportunity | null
   /** Selection handler */
@@ -105,6 +111,9 @@ export function DashboardLayout({
   filters,
   onFiltersChange,
   loading = false,
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore,
   selectedOpportunity,
   onSelectOpportunity,
   onCloseOpportunity,
@@ -245,6 +254,9 @@ export function DashboardLayout({
                 selectedId={selectedOpportunity?.opportunity_id}
                 onSelect={onSelectOpportunity}
                 loading={loading}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                onLoadMore={onLoadMore}
               />
             </div>
 
