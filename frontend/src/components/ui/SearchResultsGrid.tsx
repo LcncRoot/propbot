@@ -56,15 +56,16 @@ export function SearchResultsGrid({
   )
 
   useEffect(() => {
+    const element = loadMoreRef.current
+    if (!element) return
+
     const observer = new IntersectionObserver(handleObserver, {
       root: null,
-      rootMargin: '200px', // Trigger 200px before reaching the end
-      threshold: 0,
+      rootMargin: '400px', // Trigger 400px before reaching the end
+      threshold: 0.1,
     })
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
-    }
+    observer.observe(element)
 
     return () => observer.disconnect()
   }, [handleObserver])
@@ -125,12 +126,27 @@ export function SearchResultsGrid({
       </div>
 
       {/* Infinite scroll sentinel and loading indicator */}
-      <div ref={loadMoreRef} className="py-8 flex justify-center">
+      <div ref={loadMoreRef} className="py-8 flex flex-col items-center gap-4">
         {loadingMore && (
           <div className="flex items-center gap-3 text-text-secondary">
             <LoadingSpinner />
             <span>Loading more opportunities...</span>
           </div>
+        )}
+        {hasMore && !loadingMore && (
+          <button
+            onClick={onLoadMore}
+            className={cn(
+              'px-6 py-2',
+              'rounded-lg',
+              'bg-accent-cyan text-bg-base',
+              'font-medium',
+              'hover:opacity-90',
+              'transition-opacity'
+            )}
+          >
+            Load More
+          </button>
         )}
         {!hasMore && opportunities.length > 0 && (
           <p className="text-text-secondary text-sm">
