@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './styles/globals.css';
-import styles from './styles/Home.module.css';
 
 function App() {
   const [query, setQuery] = useState("");
@@ -112,15 +111,15 @@ function App() {
     <div>
       <header style={{ backgroundColor: "#007bff", color: "white", padding: "15px", textAlign: "center" }}>
         <h1>Funding Explorer</h1>
-        <form onSubmit={handleSearch} className={styles.searchBar}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '15px' }}>
           <input
             type="text"
             value={searchTerm}
             onChange={handleSearchInput}
             placeholder="Search grants and contracts..."
-            className={styles.searchInput}
+            style={{ padding: '10px 15px', fontSize: '16px', borderRadius: '4px', border: 'none', width: '300px' }}
           />
-          <button type="submit" className={styles.searchButton}>Search</button>
+          <button type="submit" style={{ padding: '10px 20px', fontSize: '16px', borderRadius: '4px', border: 'none', backgroundColor: '#0056b3', color: 'white', cursor: 'pointer' }}>Search</button>
         </form>
       </header>
 
@@ -198,7 +197,7 @@ function App() {
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
         {selectedGrant && (
-          <div className={styles.detailsPanel}>
+          <div style={{ width: '80%', maxWidth: '1000px', padding: '20px', backgroundColor: '#f9f9f9', borderRadius: '8px', marginTop: '20px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
             <h2 style={{ color: 'var(--accent-blue)' }}>{selectedGrant.title}</h2>
             <div style={{ color: 'var(--text-light)' }}>
               <p><strong>Agency:</strong> {selectedGrant.agency}</p>
