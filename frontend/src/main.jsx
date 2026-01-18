@@ -8,12 +8,12 @@ import "./styles/globals.css";
 // Simple routing based on query params
 const params = new URLSearchParams(window.location.search);
 const showUIKit = params.has('ui-kit');
-const showDashboard = params.has('dashboard');
+const showLegacy = params.has('legacy');
 
 function Router() {
   if (showUIKit) return <UIKit />;
-  if (showDashboard) return <Dashboard />;
-  return <App />;
+  if (showLegacy) return <App />;
+  return <Dashboard />;  // Dashboard is now the default
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
