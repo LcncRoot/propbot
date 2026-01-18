@@ -43,6 +43,14 @@ const StarIcon = () => (
   </svg>
 )
 
+const SparkleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" />
+    <path d="M5 19l.5 1.5L7 21l-1.5.5L5 23l-.5-1.5L3 21l1.5-.5L5 19z" />
+    <path d="M19 11l.5 1.5L21 13l-1.5.5L19 15l-.5-1.5L17 13l1.5-.5L19 11z" />
+  </svg>
+)
+
 const FilterIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
@@ -114,6 +122,8 @@ interface DashboardLayoutProps {
   batchProgress?: BatchAnalysisProgress | null
   /** Whether batch analysis is running */
   isAnalyzing?: boolean
+  /** Count of recommended (high-fit) opportunities */
+  forYouCount?: number
   className?: string
 }
 
@@ -149,6 +159,7 @@ export function DashboardLayout({
   onBatchAnalyze,
   batchProgress,
   isAnalyzing = false,
+  forYouCount,
   className,
 }: DashboardLayoutProps) {
   const [showFilters, setShowFilters] = useState(false)
@@ -156,6 +167,7 @@ export function DashboardLayout({
 
   const navItems = [
     { id: 'all', label: 'All Results', icon: <HomeIcon />, count: totalCount },
+    { id: 'foryou', label: 'For You', icon: <SparkleIcon />, count: forYouCount },
     { id: 'grants', label: 'Grants', icon: <FolderIcon /> },
     { id: 'contracts', label: 'Contracts', icon: <FileIcon /> },
     { id: 'rfis', label: 'RFIs', icon: <RfiIcon /> },

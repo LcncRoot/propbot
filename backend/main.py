@@ -647,6 +647,66 @@ def get_analysis(opportunity_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/recommendations")
+def get_recommended_opportunities(min_score: int = Query(7, ge=1, le=10)):
+    """
+    Get opportunities with high fit scores (recommended for you).
+
+    Args:
+        min_score: Minimum fit score to include (default 7).
+
+    Returns:
+        List of opportunities with their analysis, sorted by fit score descending.
+    """
+    try:
+        conn = get_connection()
+
+        # Join opportunities with their analysis, filter by fit score
+        cursor = conn.execute("""
+            SELECT
+                o.*,
+                a.summary,
+                a.fit_score,
+                a.fit_reasoning,
+                a.key_requirements,
+                a.red_flags,
+                a.recommended_action,
+                a.analyzed_at
+            FROM opportunities o
+            INNER JOIN opportunity_analysis a ON o.opportunity_id = a.opportunity_id
+            WHERE a.fit_score >= ?
+            ORDER BY a.fit_score DESC, o.deadline ASC
+        """, (min_score,))
+
+        results = []
+        for row in cursor.fetchall():
+            opp = dict(row)
+            # Parse JSON fields from analysis
+            if opp.get("key_requirements"):
+                try:
+                    opp["key_requirements"] = json.loads(opp["key_requirements"])
+                except:
+                    pass
+            if opp.get("red_flags"):
+                try:
+                    opp["red_flags"] = json.loads(opp["red_flags"])
+                except:
+                    pass
+            results.append(opp)
+
+        conn.close()
+
+        return {
+            "opportunities": results,
+            "count": len(results),
+            "min_score": min_score
+        }
+
+    except Exception as e:
+        logger.error(f"Recommendations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/profile")
 def get_company_profile():
     """Get the current company profile used for matching."""

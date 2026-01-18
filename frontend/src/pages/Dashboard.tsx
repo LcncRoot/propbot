@@ -51,6 +51,10 @@ export function Dashboard() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [batchProgress, setBatchProgress] = useState<BatchAnalysisProgress | null>(null)
 
+  // For You (recommendations) state
+  const [forYouOpportunities, setForYouOpportunities] = useState<Opportunity[]>([])
+  const [forYouCount, setForYouCount] = useState<number | undefined>(undefined)
+
   // Fetch total count on mount
   useEffect(() => {
     const fetchCount = async () => {
@@ -84,6 +88,23 @@ export function Dashboard() {
     }
     fetchInitial()
   }, [])
+
+  // Fetch recommendations (For You tab)
+  const fetchRecommendations = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/recommendations`)
+      const data = await response.json()
+      setForYouOpportunities(data.opportunities)
+      setForYouCount(data.count)
+    } catch (error) {
+      console.error('Failed to fetch recommendations:', error)
+    }
+  }, [])
+
+  // Fetch recommendations on mount and when batch analysis completes
+  useEffect(() => {
+    fetchRecommendations()
+  }, [fetchRecommendations])
 
   // Load more opportunities (for infinite scroll)
   const loadMore = useCallback(async () => {
@@ -162,24 +183,28 @@ export function Dashboard() {
   const isGrant = (opp: Opportunity) => opp.source === 'grants.gov'
 
   // Filter opportunities based on current filters and nav
-  const filteredOpportunities = opportunities.filter((opp) => {
-    // Nav filter
-    if (activeNav === 'grants' && !isGrant(opp)) return false
-    if (activeNav === 'contracts' && !isContract(opp)) return false
-    if (activeNav === 'rfis' && !isRfi(opp)) return false
+  const filteredOpportunities = activeNav === 'foryou'
+    ? forYouOpportunities  // For You shows pre-filtered recommendations
+    : opportunities.filter((opp) => {
+        // Nav filter
+        if (activeNav === 'grants' && !isGrant(opp)) return false
+        if (activeNav === 'contracts' && !isContract(opp)) return false
+        if (activeNav === 'rfis' && !isRfi(opp)) return false
 
-    // Source filter (for "all" view)
-    if (isGrant(opp) && !filters.sources.grants) return false
-    if (isContract(opp) && !filters.sources.contracts) return false
-    if (isRfi(opp) && !filters.sources.rfis) return false
+        // Source filter (for "all" view)
+        if (isGrant(opp) && !filters.sources.grants) return false
+        if (isContract(opp) && !filters.sources.contracts) return false
+        if (isRfi(opp) && !filters.sources.rfis) return false
 
-    return true
-  })
+        return true
+      })
 
   // Use total from stats when not searching, otherwise use filtered count
-  const displayCount = searchQuery.trim()
-    ? filteredOpportunities.length
-    : (totalCount ?? filteredOpportunities.length)
+  const displayCount = activeNav === 'foryou'
+    ? forYouCount ?? forYouOpportunities.length
+    : searchQuery.trim()
+      ? filteredOpportunities.length
+      : (totalCount ?? filteredOpportunities.length)
 
   // Batch analysis handler
   const handleBatchAnalyze = useCallback(async () => {
@@ -233,7 +258,8 @@ export function Dashboard() {
               })
             } else if (data.type === 'complete') {
               console.log('Batch analysis complete:', data)
-              // Could store results or trigger a refresh here
+              // Refresh recommendations after batch analysis
+              fetchRecommendations()
             }
           }
         }
@@ -244,7 +270,7 @@ export function Dashboard() {
       setIsAnalyzing(false)
       setBatchProgress(null)
     }
-  }, [filteredOpportunities, isAnalyzing])
+  }, [filteredOpportunities, isAnalyzing, fetchRecommendations])
 
   return (
     <DashboardLayout
@@ -266,6 +292,7 @@ export function Dashboard() {
       onBatchAnalyze={handleBatchAnalyze}
       batchProgress={batchProgress}
       isAnalyzing={isAnalyzing}
+      forYouCount={forYouCount}
     />
   )
 }
