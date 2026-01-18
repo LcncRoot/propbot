@@ -1,3 +1,4 @@
+import { useEffect, useRef, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { Opportunity } from '@/types/opportunity'
 import { OpportunityCard } from './OpportunityCard'
@@ -9,8 +10,14 @@ interface SearchResultsGridProps {
   selectedId?: string | null
   /** Callback when an opportunity is clicked */
   onSelect?: (opportunity: Opportunity) => void
-  /** Loading state */
+  /** Loading state (initial load) */
   loading?: boolean
+  /** Loading more state (infinite scroll) */
+  loadingMore?: boolean
+  /** Whether there are more results to load */
+  hasMore?: boolean
+  /** Callback to load more results */
+  onLoadMore?: () => void
   /** Empty state message */
   emptyMessage?: string
   className?: string
@@ -29,10 +36,40 @@ export function SearchResultsGrid({
   selectedId,
   onSelect,
   loading = false,
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore,
   emptyMessage = 'No opportunities found. Try adjusting your search or filters.',
   className,
 }: SearchResultsGridProps) {
-  // Loading state
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  // IntersectionObserver for infinite scroll
+  const handleObserver = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0]
+      if (target.isIntersecting && hasMore && !loadingMore && onLoadMore) {
+        onLoadMore()
+      }
+    },
+    [hasMore, loadingMore, onLoadMore]
+  )
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: '200px', // Trigger 200px before reaching the end
+      threshold: 0,
+    })
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [handleObserver])
+
+  // Loading state (initial load)
   if (loading) {
     return (
       <div
@@ -68,23 +105,39 @@ export function SearchResultsGrid({
     )
   }
 
-  // Results grid
+  // Results grid with infinite scroll sentinel
   return (
-    <div
-      className={cn(
-        'grid gap-4',
-        'grid-cols-1 md:grid-cols-2 xl:grid-cols-3',
-        className
-      )}
-    >
-      {opportunities.map((opp) => (
-        <OpportunityCard
-          key={opp.opportunity_id}
-          opportunity={opp}
-          selected={selectedId === opp.opportunity_id}
-          onClick={() => onSelect?.(opp)}
-        />
-      ))}
+    <div className={className}>
+      <div
+        className={cn(
+          'grid gap-4',
+          'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+        )}
+      >
+        {opportunities.map((opp) => (
+          <OpportunityCard
+            key={opp.opportunity_id}
+            opportunity={opp}
+            selected={selectedId === opp.opportunity_id}
+            onClick={() => onSelect?.(opp)}
+          />
+        ))}
+      </div>
+
+      {/* Infinite scroll sentinel and loading indicator */}
+      <div ref={loadMoreRef} className="py-8 flex justify-center">
+        {loadingMore && (
+          <div className="flex items-center gap-3 text-text-secondary">
+            <LoadingSpinner />
+            <span>Loading more opportunities...</span>
+          </div>
+        )}
+        {!hasMore && opportunities.length > 0 && (
+          <p className="text-text-secondary text-sm">
+            All {opportunities.length} opportunities loaded
+          </p>
+        )}
+      </div>
     </div>
   )
 }
@@ -152,6 +205,34 @@ function EmptyIcon() {
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.35-4.35" />
       <path d="M8 11h6" />
+    </svg>
+  )
+}
+
+/**
+ * Loading spinner for infinite scroll
+ */
+function LoadingSpinner() {
+  return (
+    <svg
+      className="animate-spin h-5 w-5"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
     </svg>
   )
 }
