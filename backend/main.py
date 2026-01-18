@@ -493,6 +493,93 @@ def get_document(doc_id: str):
     raise HTTPException(status_code=404, detail="Document not found")
 
 
+# ============================================================================
+# INTEL AGENT ENDPOINTS
+# ============================================================================
+
+@app.post("/api/analyze/{opportunity_id}")
+def analyze_opportunity(opportunity_id: str, fetch_docs: bool = True):
+    """
+    Analyze an opportunity using AI.
+
+    Fetches documents, extracts text, and generates AI-powered analysis
+    including fit score, summary, and recommendations.
+
+    Args:
+        opportunity_id: The opportunity ID to analyze.
+        fetch_docs: Whether to fetch and extract documents first.
+
+    Returns:
+        Analysis results including summary, fit_score, and recommended_action.
+    """
+    try:
+        from propbot.intel.analyzer import OpportunityAnalyzer
+
+        analyzer = OpportunityAnalyzer()
+        result = analyzer.analyze_opportunity(opportunity_id, fetch_documents=fetch_docs)
+
+        return {
+            "opportunity_id": opportunity_id,
+            "analysis": result
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Analysis error: {e}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+
+@app.get("/api/analysis/{opportunity_id}")
+def get_analysis(opportunity_id: str):
+    """
+    Get stored analysis for an opportunity.
+
+    Returns cached analysis if available, or 404 if not yet analyzed.
+    """
+    try:
+        from propbot.intel.analyzer import OpportunityAnalyzer
+
+        analyzer = OpportunityAnalyzer()
+        result = analyzer.get_analysis(opportunity_id)
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Analysis not found. Call POST /api/analyze first.")
+
+        return {
+            "opportunity_id": opportunity_id,
+            "analysis": result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/profile")
+def get_company_profile():
+    """Get the current company profile used for matching."""
+    try:
+        from propbot.database.migrations import get_company_profile as get_profile
+
+        conn = get_connection()
+        profile = get_profile(conn)
+        conn.close()
+
+        if not profile:
+            raise HTTPException(status_code=404, detail="Company profile not found")
+
+        return profile
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Profile error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 def health_check():
     """Health check endpoint."""
