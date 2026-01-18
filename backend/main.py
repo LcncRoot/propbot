@@ -14,7 +14,8 @@ from typing import Optional
 import requests
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 
 # Add propbot package to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -496,6 +497,94 @@ def get_document(doc_id: str):
 # ============================================================================
 # INTEL AGENT ENDPOINTS
 # ============================================================================
+
+class BatchAnalyzeRequest(BaseModel):
+    """Request body for batch analysis."""
+    opportunity_ids: list[str]
+
+
+@app.post("/api/analyze/batch")
+def batch_analyze_opportunities(request: BatchAnalyzeRequest):
+    """
+    Analyze multiple opportunities in batch with streaming progress.
+
+    Uses Server-Sent Events (SSE) to stream progress updates as each
+    opportunity is analyzed.
+
+    Args:
+        request: BatchAnalyzeRequest with list of opportunity IDs.
+
+    Returns:
+        SSE stream with progress events and final results.
+    """
+    import time
+
+    def generate():
+        from propbot.intel.analyzer import OpportunityAnalyzer
+
+        analyzer = OpportunityAnalyzer()
+        total = len(request.opportunity_ids)
+        results = []
+        skipped = 0
+
+        for idx, opp_id in enumerate(request.opportunity_ids):
+            # Check if already analyzed (cached)
+            existing = analyzer.get_analysis(opp_id)
+            if existing:
+                results.append({
+                    "opportunity_id": opp_id,
+                    "analysis": existing,
+                    "cached": True
+                })
+                skipped += 1
+            else:
+                try:
+                    # Analyze the opportunity
+                    result = analyzer.analyze_opportunity(opp_id, fetch_documents=False)
+                    results.append({
+                        "opportunity_id": opp_id,
+                        "analysis": result,
+                        "cached": False
+                    })
+                except Exception as e:
+                    logger.error(f"Batch analysis error for {opp_id}: {e}")
+                    results.append({
+                        "opportunity_id": opp_id,
+                        "error": str(e),
+                        "cached": False
+                    })
+
+                # Rate limit between API calls (only for non-cached)
+                time.sleep(0.1)
+
+            # Send progress update
+            progress_event = {
+                "type": "progress",
+                "analyzed": idx + 1,
+                "total": total,
+                "current_id": opp_id,
+                "skipped": skipped
+            }
+            yield f"data: {json.dumps(progress_event)}\n\n"
+
+        # Send final results
+        final_event = {
+            "type": "complete",
+            "results": results,
+            "total_analyzed": total,
+            "skipped_cached": skipped
+        }
+        yield f"data: {json.dumps(final_event)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
 
 @app.post("/api/analyze/{opportunity_id}")
 def analyze_opportunity(opportunity_id: str, fetch_docs: bool = True):

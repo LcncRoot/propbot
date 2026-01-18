@@ -56,6 +56,27 @@ const UserIcon = () => (
   </svg>
 )
 
+const AnalyzeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a4 4 0 0 1 4 4c0 1.1-.45 2.1-1.17 2.83L12 12l-2.83-3.17A4 4 0 0 1 12 2z" />
+    <path d="M12 12l2.83 3.17A4 4 0 1 1 12 22a4 4 0 0 1-2.83-6.83L12 12z" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+)
+
+const LoadingSpinner = () => (
+  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+  </svg>
+)
+
+interface BatchAnalysisProgress {
+  analyzed: number
+  total: number
+  currentId?: string
+}
+
 interface DashboardLayoutProps {
   /** Opportunities to display */
   opportunities: Opportunity[]
@@ -87,6 +108,12 @@ interface DashboardLayoutProps {
   activeNav?: string
   /** Nav change handler */
   onNavChange?: (nav: string) => void
+  /** Batch analysis handler */
+  onBatchAnalyze?: () => void
+  /** Batch analysis progress */
+  batchProgress?: BatchAnalysisProgress | null
+  /** Whether batch analysis is running */
+  isAnalyzing?: boolean
   className?: string
 }
 
@@ -119,6 +146,9 @@ export function DashboardLayout({
   onCloseOpportunity,
   activeNav = 'all',
   onNavChange,
+  onBatchAnalyze,
+  batchProgress,
+  isAnalyzing = false,
   className,
 }: DashboardLayoutProps) {
   const [showFilters, setShowFilters] = useState(false)
@@ -198,11 +228,10 @@ export function DashboardLayout({
           'w-52',
           'bg-bg-surface',
           'border-r border-border-default',
-          'p-4',
-          'overflow-y-auto'
+          'flex flex-col'
         )}
       >
-        <nav className="space-y-1">
+        <nav className="space-y-1 p-4 flex-1">
           {navItems.map((item) => (
             <NavItem
               key={item.id}
@@ -214,6 +243,55 @@ export function DashboardLayout({
             />
           ))}
         </nav>
+
+        {/* Analyze All Button - Fixed at bottom of sidebar */}
+        <div className="p-4 border-t border-border-default">
+          <button
+            onClick={onBatchAnalyze}
+            disabled={isAnalyzing || opportunities.length === 0}
+            className={cn(
+              'w-full flex items-center gap-3 px-4 py-3 rounded-lg',
+              'text-sm font-medium',
+              'transition-all duration-200',
+              isAnalyzing
+                ? 'bg-accent-cyan/20 text-accent-cyan cursor-wait'
+                : 'bg-bg-card hover:bg-accent-cyan/10 text-text-primary hover:text-accent-cyan',
+              'border border-border-default hover:border-accent-cyan/50',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            {isAnalyzing ? <LoadingSpinner /> : <AnalyzeIcon />}
+            <div className="flex-1 text-left">
+              {isAnalyzing ? (
+                <>
+                  <div className="text-xs text-text-secondary">Analyzing...</div>
+                  <div className="text-sm">
+                    {batchProgress?.analyzed ?? 0}/{batchProgress?.total ?? 0}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-xs text-text-secondary">AI Analysis</div>
+                  <div className="text-sm">Analyze All ({opportunities.length})</div>
+                </>
+              )}
+            </div>
+          </button>
+
+          {/* Progress bar */}
+          {isAnalyzing && batchProgress && (
+            <div className="mt-2">
+              <div className="h-1 bg-bg-card rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-accent-cyan transition-all duration-300"
+                  style={{
+                    width: `${(batchProgress.analyzed / batchProgress.total) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Main Content */}
