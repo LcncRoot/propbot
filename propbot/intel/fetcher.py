@@ -9,7 +9,7 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
-from ..config import config
+from ..config import config, PROJECT_ROOT
 from ..database.connection import get_connection
 
 
@@ -28,7 +28,7 @@ class DocumentFetcher:
             storage_dir: Directory to store downloaded documents.
                         Defaults to propbot/data/documents/
         """
-        self.storage_dir = storage_dir or (config.PROJECT_ROOT / "propbot" / "data" / "documents")
+        self.storage_dir = storage_dir or (PROJECT_ROOT / "propbot" / "data" / "documents")
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
         self.session.headers.update({
