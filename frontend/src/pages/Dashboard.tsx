@@ -144,17 +144,24 @@ export function Dashboard() {
     }
   }, [])
 
+  // RFI notice types (matches backend definition)
+  const RFI_NOTICE_TYPES = ['Sources Sought', 'Special Notice']
+
+  const isRfi = (opp: Opportunity) => RFI_NOTICE_TYPES.includes(opp.notice_type || '')
+  const isContract = (opp: Opportunity) => opp.source === 'sam.gov' && !isRfi(opp)
+  const isGrant = (opp: Opportunity) => opp.source === 'grants.gov'
+
   // Filter opportunities based on current filters and nav
   const filteredOpportunities = opportunities.filter((opp) => {
     // Nav filter
-    if (activeNav === 'grants' && opp.source !== 'grants.gov') return false
-    if (activeNav === 'contracts' && (opp.source !== 'sam.gov' || opp.notice_type)) return false
-    if (activeNav === 'rfis' && !opp.notice_type) return false
+    if (activeNav === 'grants' && !isGrant(opp)) return false
+    if (activeNav === 'contracts' && !isContract(opp)) return false
+    if (activeNav === 'rfis' && !isRfi(opp)) return false
 
-    // Source filter
-    if (opp.source === 'grants.gov' && !filters.sources.grants) return false
-    if (opp.source === 'sam.gov' && !opp.notice_type && !filters.sources.contracts) return false
-    if (opp.notice_type && !filters.sources.rfis) return false
+    // Source filter (for "all" view)
+    if (isGrant(opp) && !filters.sources.grants) return false
+    if (isContract(opp) && !filters.sources.contracts) return false
+    if (isRfi(opp) && !filters.sources.rfis) return false
 
     return true
   })
