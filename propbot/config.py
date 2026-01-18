@@ -31,7 +31,7 @@ class Config:
 
     # Pipeline settings
     SAM_PAGE_SIZE: int = 100  # Records per API request
-    SAM_RATE_LIMIT_DELAY: float = 0.5  # Seconds between requests
+    SAM_RATE_LIMIT_DELAY: float = 1.5  # Seconds between requests (SAM.gov is strict)
 
     @classmethod
     def validate(cls) -> list[str]:
