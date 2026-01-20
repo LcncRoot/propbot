@@ -25,6 +25,12 @@ interface ApiListResponse {
   count: number
 }
 
+interface BatchAnalysisProgress {
+  analyzed: number
+  total: number
+  currentId?: string
+}
+
 export function Dashboard() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,6 +46,14 @@ export function Dashboard() {
     status: { open: true, closingSoon: true, closed: false },
     fundingRange: { min: null, max: null },
   })
+
+  // Batch analysis state
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [batchProgress, setBatchProgress] = useState<BatchAnalysisProgress | null>(null)
+
+  // For You (recommendations) state
+  const [forYouOpportunities, setForYouOpportunities] = useState<Opportunity[]>([])
+  const [forYouCount, setForYouCount] = useState<number | undefined>(undefined)
 
   // Fetch total count on mount
   useEffect(() => {
@@ -74,6 +88,23 @@ export function Dashboard() {
     }
     fetchInitial()
   }, [])
+
+  // Fetch recommendations (For You tab)
+  const fetchRecommendations = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/recommendations`)
+      const data = await response.json()
+      setForYouOpportunities(data.opportunities)
+      setForYouCount(data.count)
+    } catch (error) {
+      console.error('Failed to fetch recommendations:', error)
+    }
+  }, [])
+
+  // Fetch recommendations on mount and when batch analysis completes
+  useEffect(() => {
+    fetchRecommendations()
+  }, [fetchRecommendations])
 
   // Load more opportunities (for infinite scroll)
   const loadMore = useCallback(async () => {
@@ -152,24 +183,94 @@ export function Dashboard() {
   const isGrant = (opp: Opportunity) => opp.source === 'grants.gov'
 
   // Filter opportunities based on current filters and nav
-  const filteredOpportunities = opportunities.filter((opp) => {
-    // Nav filter
-    if (activeNav === 'grants' && !isGrant(opp)) return false
-    if (activeNav === 'contracts' && !isContract(opp)) return false
-    if (activeNav === 'rfis' && !isRfi(opp)) return false
+  const filteredOpportunities = activeNav === 'foryou'
+    ? forYouOpportunities  // For You shows pre-filtered recommendations
+    : opportunities.filter((opp) => {
+        // Nav filter
+        if (activeNav === 'grants' && !isGrant(opp)) return false
+        if (activeNav === 'contracts' && !isContract(opp)) return false
+        if (activeNav === 'rfis' && !isRfi(opp)) return false
 
-    // Source filter (for "all" view)
-    if (isGrant(opp) && !filters.sources.grants) return false
-    if (isContract(opp) && !filters.sources.contracts) return false
-    if (isRfi(opp) && !filters.sources.rfis) return false
+        // Source filter (for "all" view)
+        if (isGrant(opp) && !filters.sources.grants) return false
+        if (isContract(opp) && !filters.sources.contracts) return false
+        if (isRfi(opp) && !filters.sources.rfis) return false
 
-    return true
-  })
+        return true
+      })
 
   // Use total from stats when not searching, otherwise use filtered count
-  const displayCount = searchQuery.trim()
-    ? filteredOpportunities.length
-    : (totalCount ?? filteredOpportunities.length)
+  const displayCount = activeNav === 'foryou'
+    ? forYouCount ?? forYouOpportunities.length
+    : searchQuery.trim()
+      ? filteredOpportunities.length
+      : (totalCount ?? filteredOpportunities.length)
+
+  // Batch analysis handler
+  const handleBatchAnalyze = useCallback(async () => {
+    if (isAnalyzing || filteredOpportunities.length === 0) return
+
+    setIsAnalyzing(true)
+    setBatchProgress({ analyzed: 0, total: filteredOpportunities.length })
+
+    try {
+      const opportunityIds = filteredOpportunities.map(opp => opp.opportunity_id)
+
+      const response = await fetch(`${API_BASE}/api/analyze/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ opportunity_ids: opportunityIds }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Batch analysis failed')
+      }
+
+      // Read SSE stream
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // Parse SSE events from buffer
+        const lines = buffer.split('\n\n')
+        buffer = lines.pop() || '' // Keep incomplete event in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.slice(6))
+
+            if (data.type === 'progress') {
+              setBatchProgress({
+                analyzed: data.analyzed,
+                total: data.total,
+                currentId: data.current_id,
+              })
+            } else if (data.type === 'complete') {
+              console.log('Batch analysis complete:', data)
+              // Refresh recommendations after batch analysis
+              fetchRecommendations()
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Batch analysis error:', error)
+    } finally {
+      setIsAnalyzing(false)
+      setBatchProgress(null)
+    }
+  }, [filteredOpportunities, isAnalyzing, fetchRecommendations])
 
   return (
     <DashboardLayout
@@ -188,6 +289,10 @@ export function Dashboard() {
       loadingMore={loadingMore}
       hasMore={hasMore && !searchQuery.trim()}
       onLoadMore={loadMore}
+      onBatchAnalyze={handleBatchAnalyze}
+      batchProgress={batchProgress}
+      isAnalyzing={isAnalyzing}
+      forYouCount={forYouCount}
     />
   )
 }

@@ -7,6 +7,7 @@ Coordinates the full ingest pipeline:
 4. Filter by freshness (expired deadlines only)
 5. Store ALL non-expired opportunities to database
 6. Track ingest run statistics
+7. Regenerate FAISS embeddings index for semantic search
 
 Note: Capability filtering has been removed from ingest.
 All non-expired opportunities are stored; relevance filtering
@@ -17,6 +18,7 @@ from typing import Optional
 
 from ..database.connection import get_connection, init_db
 from ..database.migrations import run_migrations
+from ..embeddings.generator import EmbeddingGenerator
 from ..sources.base import BaseSource
 from ..sources.grants import GrantsGovSource
 from ..sources.sam import SamGovSource
@@ -80,6 +82,14 @@ def run_pipeline(
         result = _process_source(conn, source)
         results[source.get_source_name()] = result
 
+    # Regenerate FAISS embeddings index
+    print(f"\n{'='*60}")
+    print("Regenerating FAISS embeddings index")
+    print(f"{'='*60}")
+    generator = EmbeddingGenerator()
+    embedding_stats = generator.generate_index(conn)
+    results["embeddings"] = embedding_stats
+
     conn.close()
 
     # Print summary
@@ -87,11 +97,16 @@ def run_pipeline(
     print("PIPELINE SUMMARY")
     print(f"{'='*60}")
     for source_name, stats in results.items():
-        print(f"\n{source_name}:")
-        print(f"  Fetched: {stats['records_fetched']}")
-        print(f"  Filtered (expired): {stats['records_filtered_expired']}")
-        print(f"  Inserted: {stats['records_inserted']}")
-        print(f"  Updated: {stats['records_updated']}")
+        if source_name == "embeddings":
+            print(f"\n{source_name}:")
+            print(f"  Total opportunities: {stats.get('total', 0)}")
+            print(f"  Embedded: {stats.get('embedded', 0)}")
+        else:
+            print(f"\n{source_name}:")
+            print(f"  Fetched: {stats['records_fetched']}")
+            print(f"  Filtered (expired): {stats['records_filtered_expired']}")
+            print(f"  Inserted: {stats['records_inserted']}")
+            print(f"  Updated: {stats['records_updated']}")
 
     return results
 

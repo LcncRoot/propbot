@@ -14,7 +14,8 @@ from typing import Optional
 import requests
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 
 # Add propbot package to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -497,6 +498,94 @@ def get_document(doc_id: str):
 # INTEL AGENT ENDPOINTS
 # ============================================================================
 
+class BatchAnalyzeRequest(BaseModel):
+    """Request body for batch analysis."""
+    opportunity_ids: list[str]
+
+
+@app.post("/api/analyze/batch")
+def batch_analyze_opportunities(request: BatchAnalyzeRequest):
+    """
+    Analyze multiple opportunities in batch with streaming progress.
+
+    Uses Server-Sent Events (SSE) to stream progress updates as each
+    opportunity is analyzed.
+
+    Args:
+        request: BatchAnalyzeRequest with list of opportunity IDs.
+
+    Returns:
+        SSE stream with progress events and final results.
+    """
+    import time
+
+    def generate():
+        from propbot.intel.analyzer import OpportunityAnalyzer
+
+        analyzer = OpportunityAnalyzer()
+        total = len(request.opportunity_ids)
+        results = []
+        skipped = 0
+
+        for idx, opp_id in enumerate(request.opportunity_ids):
+            # Check if already analyzed (cached)
+            existing = analyzer.get_analysis(opp_id)
+            if existing:
+                results.append({
+                    "opportunity_id": opp_id,
+                    "analysis": existing,
+                    "cached": True
+                })
+                skipped += 1
+            else:
+                try:
+                    # Analyze the opportunity
+                    result = analyzer.analyze_opportunity(opp_id, fetch_documents=False)
+                    results.append({
+                        "opportunity_id": opp_id,
+                        "analysis": result,
+                        "cached": False
+                    })
+                except Exception as e:
+                    logger.error(f"Batch analysis error for {opp_id}: {e}")
+                    results.append({
+                        "opportunity_id": opp_id,
+                        "error": str(e),
+                        "cached": False
+                    })
+
+                # Rate limit between API calls (only for non-cached)
+                time.sleep(0.1)
+
+            # Send progress update
+            progress_event = {
+                "type": "progress",
+                "analyzed": idx + 1,
+                "total": total,
+                "current_id": opp_id,
+                "skipped": skipped
+            }
+            yield f"data: {json.dumps(progress_event)}\n\n"
+
+        # Send final results
+        final_event = {
+            "type": "complete",
+            "results": results,
+            "total_analyzed": total,
+            "skipped_cached": skipped
+        }
+        yield f"data: {json.dumps(final_event)}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+
 @app.post("/api/analyze/{opportunity_id}")
 def analyze_opportunity(opportunity_id: str, fetch_docs: bool = True):
     """
@@ -555,6 +644,66 @@ def get_analysis(opportunity_id: str):
         raise
     except Exception as e:
         logger.error(f"Get analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/recommendations")
+def get_recommended_opportunities(min_score: int = Query(7, ge=1, le=10)):
+    """
+    Get opportunities with high fit scores (recommended for you).
+
+    Args:
+        min_score: Minimum fit score to include (default 7).
+
+    Returns:
+        List of opportunities with their analysis, sorted by fit score descending.
+    """
+    try:
+        conn = get_connection()
+
+        # Join opportunities with their analysis, filter by fit score
+        cursor = conn.execute("""
+            SELECT
+                o.*,
+                a.summary,
+                a.fit_score,
+                a.fit_reasoning,
+                a.key_requirements,
+                a.red_flags,
+                a.recommended_action,
+                a.analyzed_at
+            FROM opportunities o
+            INNER JOIN opportunity_analysis a ON o.opportunity_id = a.opportunity_id
+            WHERE a.fit_score >= ?
+            ORDER BY a.fit_score DESC, o.deadline ASC
+        """, (min_score,))
+
+        results = []
+        for row in cursor.fetchall():
+            opp = dict(row)
+            # Parse JSON fields from analysis
+            if opp.get("key_requirements"):
+                try:
+                    opp["key_requirements"] = json.loads(opp["key_requirements"])
+                except:
+                    pass
+            if opp.get("red_flags"):
+                try:
+                    opp["red_flags"] = json.loads(opp["red_flags"])
+                except:
+                    pass
+            results.append(opp)
+
+        conn.close()
+
+        return {
+            "opportunities": results,
+            "count": len(results),
+            "min_score": min_score
+        }
+
+    except Exception as e:
+        logger.error(f"Recommendations error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
